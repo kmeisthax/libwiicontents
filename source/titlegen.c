@@ -34,6 +34,9 @@ distribution.
 #include <ogc/ios.h>
 
 #include "wiicontents.h"
+#include "wc_private.c"
+#include "strlcpy.c"
+#include "strlcat.c"
 
 //Structs
 typedef struct {
@@ -50,48 +53,65 @@ typedef struct {
                       // crypto should be all 0's when calculating final MD5
 } __attribute__((packed)) IMET;
 
+//Constants
+#define IMET_MAGIC 0x494D4554 //"IMET"
+
 //Prototypes
 s32 __makeContentPath(u64 tid, char* outASCII, size_t oaSize);
-s32 __findIMETinTitle(u64 tid, IMET* outIMET);
+s32 __findIMETinTitle(u64 tid, u32* cid, IMET* outIMET);
 s32 __getNameInIMET(IMET inIMET, u16* outUnicode, size_t ouSize, title_lang language, int line);
 s32 __makeGenericName(u64 tid, u16* outUnicode, size_t ouSize, title_lang language, int line);
 
 s32 __makeContentPath(u64 tid, char* outASCII, size_t oaSize) {
-    char filename[256];
-    sprintf(filename, "/title/%08x/%08x/content/", TITLE_UPPER(tid), TITLE_LOWER(tid), cid);
-    memcpy(outASCII, filename, oaSize);
+    char filename[255];
+    snprintf(filename, 255, "/title/%08x/%08x/content/", TITLE_UPPER(tid), TITLE_LOWER(tid), cid);
+    strlcpy(outASCII, filename, oaSize);
+    return WCT_OKAY;
 }
 
-s32 __findIMETinTitle(u64 tid, IMET* outIMET) {
+s32 __findIMETinTitle(u64 tid, u32* cid, IMET* outIMET) {
     s32 errno;
+    IMET malignedIMET ALIGN_32;
+    
+    //Make title directory string
+    char filename[255] ALIGN_32;
+    __makeContentPath(tid, filename, 255);
     
     //Get list of contents
-    char* dirent_buffer;
-    u32 dirent_length;
+    u32 dirents = 0;
+    ISFS_ReadDir(__makeContentPath(), NULL, &dirents);
+    char* dirent_buffer = memalign(32, dirents * ISFS_DIRENT_SIZE);
+    ISFS_ReadDir(__makeContentPath(), dirent_buffer, &dirents);
 
-    //
+    int i = 0;
+    int bannerfound = false;
 
-    s32 fd = ISFS_Open(filename, ISFS_OPEN_READ);
-    IMET* malignedIMET = outIMET;
-    if (fd >= 0) {
-        if (!ISALIGNED(malignedIMET)) {
-            malignedIMET = memalign(32, sizeof(IMET));
+    for (i = 0; i < dirents; i++) {
+        char* cur_dirent = dirent_buffer[ISFS_DIRENT_SIZE * i];
+        char cur_filename[255] ALIGN_32;
+
+        strlcpy(cur_filename, filename, 255);
+        strlcat(cur_filename, cur_dirent, 255);
+        
+        s32 fd = ISFS_Open(cur_filename, ISFS_OPEN_READ);
+        if (fd >= 0) {
+            errno = ISFS_Read(fd, malignedIMET, sizeof(IMET));
+            ISFS_Close(fd);
+            //Check to see if this is a valid IMET
+            if (malignedIMET->imet == IMET_MAGIC) {
+                //Found the IMET!
+                int bannerfound = true;
+                hex2u32(cur_dirent, cid);
+                break;
+            }
         }
-        
-        errno = ISFS_Read(fd, outIMET, sizeof(IMET));
-        
-        ISFS_Close(fd);
-    } else {
-        
     }
     
-    if (errno < 0) {
-    }
-    
-    if (malignedIMET != outIMET) {
+    if (bannerfound) {
         //memcpy into unaligned block
         memcpy(outIMET, malignedIMET, sizeof(IMET));
     }
     
-    
+    //free our memory
+    free(dirent_buffer);
 }
