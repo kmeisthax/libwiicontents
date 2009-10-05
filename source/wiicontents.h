@@ -26,6 +26,23 @@ distribution.
  
 -------------------------------------------------------------*/
 
+#ifndef __WCT_INCLUDE_H__
+#define __WCT_INCLUDE_H__
+
+//Operation successful.
+#define WCT_OKAY             0
+//A memory buffer you gave was not properly aligned.
+#define WCT_ENOTALIGNED     -1
+//A memory buffer you gave wasn't big enough.
+#define WCT_EOVERFLOW       -2
+//Ran out of memory.
+#define WCT_ENOMEM          -3
+//There's no banner in this particular title.
+#define WCT_ENOBANNER       -4
+//You're an idiot. Try throwing some ice around.
+#define WCT_ECIRNO         0x2468
+
+
 //Useful constants.
 typedef enum {
     lang_en, lang_jp, lang_de, lang_fr, lang_es, lang_it, lang_nl
@@ -47,3 +64,5 @@ s32 WCT_TitleNameUTF16(u16* outstring, u32 length, u64 tid, title_lang language)
 s32 WCT_TitleNameASCII(char* outstring, u32 length, u64 tid, title_lang language);
 s32 WCT_TitleTaglineUTF16(u16* outstring, u32 length, u64 tid, title_lang language);
 s32 WCT_TitleTaglineASCII(char* outstring, u32 length, u64 tid, title_lang language);
+
+#endif
