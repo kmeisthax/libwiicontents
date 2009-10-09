@@ -64,9 +64,9 @@ typedef enum {
 s32 WCT_Init(); //Initialize contents access, and attempt to exploit ES_Identify.
 s32 WCT_Deinit(); //Deinitialize WCT, which deinits ISFS.
 
-//Title contents functions.
-s32 WCT_TitleSaveDir(char* outstring, u32 length, u64 tid);
-s32 WCT_TitleContentDir(char* outstring, u32 length, u64 tid);
+//Title mounting functions.
+s32 WCT_MountTitleContents(u64 tid, device_type device);
+s32 WCT_MountTitleData(u64 tid, device_type device);
 
 //Title name retrieving functions.
 //These functions will generate a somewhat useful name for any title.
