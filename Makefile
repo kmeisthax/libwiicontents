@@ -102,16 +102,17 @@ $(BUILD):
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(OUTPUT).elf $(OUTPUT).dol
+	@rm -fr $(BUILD) $(OUTPUT).a
+	@rm -fr lib include
 
 #---------------------------------------------------------------------------------
-install:
+package:
 	@mkdir -p lib
 	@mkdir -p include
-	@cp $(OUTPUT).a lib/libwiisprite.a
-	@cp source/*.h include/
-realinstall:
-	@cp $(OUTPUT).a $(LIBOGC_LIB)/libwiisprite.a
+	@cp $(OUTPUT).a lib/libwiicontents.a
+	@cp source/wiicontents.h include/
+install:
+	@cp $(OUTPUT).a $(LIBOGC_LIB)/libwiicontents.a
 	@cp source/*.h $(LIBOGC_INC)
 
 run:
