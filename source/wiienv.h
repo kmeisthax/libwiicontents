@@ -32,5 +32,7 @@ distribution.
 #include <gctypes.h>
 
 s32 __runningFromLoader(int* trueIfLoader);
+s32 __lowerTidFromMemory(u32* outLowTid);
+s32 __TidFromES(u64* outTid);
 
 #endif
