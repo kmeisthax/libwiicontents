@@ -33,38 +33,15 @@ distribution.
 #include <ogc/isfs.h>
 #include <ogc/ios.h>
 
+#include "titlegen.h"
 #include "wiicontents.h"
-#include "wc_private.c"
-#include "strlcpy.c"
-#include "strlcat.c"
-
-//Structs
-typedef struct {
-    u8 buildtag[0x30]; //Some weird build tag at the beginning of a 00000000.app IMET
-    u8 buildaddr[0x10]; //Another weird buildtag in an IMET.
-    u8 zeroes[0x40]; // padding, 0x80 for Opening.bnr
-    u32 imet; // "IMET"
-    u8 unk[8];  // 0x0000060000000003 fixed, unknown purpose
-    u32 sizes[3]; // icon.bin, banner.bin, sound.bin
-    u32 flag1; // unknown
-    u16 names[7][2][21]; // JP, EN, DE, FR, ES, IT, NL, stored as UTF16
-    u8 zeroes_2[0x348]; // padding
-    u8 crypto[16]; // MD5 of 0x40 to 0x640 in header (for 00000000.app, Opening.bnr is 0x80 to 0x680). 
-                      // crypto should be all 0's when calculating final MD5
-} __attribute__((packed)) IMET;
-
-//Constants
-#define IMET_MAGIC 0x494D4554 //"IMET"
-
-//Prototypes
-s32 __makeContentPath(u64 tid, char* outASCII, size_t oaSize);
-s32 __findIMETinTitle(u64 tid, u32* cid, IMET* outIMET);
-s32 __getNameInIMET(IMET inIMET, u16* outUnicode, size_t ouSize, title_lang language, int line);
-s32 __makeGenericName(u64 tid, u16* outUnicode, size_t ouSize, title_lang language, int line);
+#include "wc_private.h"
+#include "strlcpy.h"
+#include "strlcat.h"
 
 s32 __makeContentPath(u64 tid, char* outASCII, size_t oaSize) {
     char filename[255];
-    snprintf(filename, 255, "/title/%08x/%08x/content/", TITLE_UPPER(tid), TITLE_LOWER(tid), cid);
+    snprintf(filename, 255, "/title/%08x/%08x/content/", TITLE_UPPER(tid), TITLE_LOWER(tid));
     strlcpy(outASCII, filename, oaSize);
     return WCT_OKAY;
 }
@@ -79,15 +56,15 @@ s32 __findIMETinTitle(u64 tid, u32* cid, IMET* outIMET) {
     
     //Get list of contents
     u32 dirents = 0;
-    ISFS_ReadDir(__makeContentPath(), NULL, &dirents);
+    ISFS_ReadDir(filename, NULL, &dirents);
     char* dirent_buffer = memalign(32, dirents * ISFS_DIRENT_SIZE);
-    ISFS_ReadDir(__makeContentPath(), dirent_buffer, &dirents);
+    ISFS_ReadDir(filename, dirent_buffer, &dirents);
 
     int i = 0;
     int bannerfound = false;
 
     for (i = 0; i < dirents; i++) {
-        char* cur_dirent = dirent_buffer[ISFS_DIRENT_SIZE * i];
+        char* cur_dirent = dirent_buffer + (ISFS_DIRENT_SIZE * i);
         char cur_filename[255] ALIGN_32;
 
         strlcpy(cur_filename, filename, 255);
@@ -95,12 +72,12 @@ s32 __findIMETinTitle(u64 tid, u32* cid, IMET* outIMET) {
         
         s32 fd = ISFS_Open(cur_filename, ISFS_OPEN_READ);
         if (fd >= 0) {
-            errno = ISFS_Read(fd, malignedIMET, sizeof(IMET));
+            errno = ISFS_Read(fd, (void*) &malignedIMET, sizeof(IMET));
             ISFS_Close(fd);
             //Check to see if this is a valid IMET
-            if (malignedIMET->imet == IMET_MAGIC) {
+            if (malignedIMET.imet == IMET_MAGIC) {
                 //Found the IMET!
-                int bannerfound = true;
+                bannerfound = true;
                 hex2u32(cur_dirent, cid);
                 break;
             }
@@ -109,9 +86,94 @@ s32 __findIMETinTitle(u64 tid, u32* cid, IMET* outIMET) {
     
     if (bannerfound) {
         //memcpy into unaligned block
-        memcpy(outIMET, malignedIMET, sizeof(IMET));
+        memcpy(outIMET, &malignedIMET, sizeof(IMET));
     }
     
     //free our memory
     free(dirent_buffer);
+    
+    return WCT_OKAY;
+}
+
+s32 __getNameInIMET(IMET* inIMET, u16* outUnicode, size_t ouSize, title_lang language, int line) {
+    u16* IMETstr = inIMET->names[language][line];
+    size_t cpySize = ouSize;
+    if (cpySize > 21)
+        cpySize = 21; //to be safe
+        
+    memcpy(outUnicode, IMETstr, cpySize);
+    
+    return WCT_OKAY;
+}
+
+s32 __makeGenericName(u64 tid, u16* outUnicode, size_t ouSize, title_lang language, int line) {
+    u32 tidtype = TITLE_UPPER(tid);
+    u32 tidcode = TITLE_LOWER(tid);
+    char* title;
+    int free_title = false; //sometimes we do need to free(title).
+
+    if (tidtype == 0x00000001) { //system software
+        switch (tidcode) {
+            case 0x00000001: //Boot2 tmd
+                if (line == LINE_TITLE) {
+                    title = "boot2";
+                } else {
+                    title = "System bootloader";
+                }
+                break;
+            case 0x00000002: //Sysmenu
+                if (line == LINE_TITLE) {
+                    title = "System Menu";
+                } else {
+                    title = "Program Loader";
+                }
+                break;
+            case 0x00000100: //BC
+                if (line == LINE_TITLE) {
+                    title = "BC";
+                } else {
+                    title = "Gamecube loader";
+                }
+                break;
+            case 0x00000101: //BC
+                if (line == LINE_TITLE) {
+                    title = "MIOS";
+                } else {
+                    title = "Gamecube firmware";
+                }
+                break;
+            default: //IOS?
+                if (tidcode < 0x00000100 && tidcode > 0x00000002) {
+                    //IOS!
+                    if (line == LINE_TITLE) {
+                        title = memalign(32, 21);
+                        free_title = true;
+                        snprintf(title, 21, "IOS%u", tidcode);
+                    } else {
+                        title = "System firmware";
+                    }
+                    break;
+                } else {
+                    if (line == LINE_TITLE) {
+                        title = "Unknown (System)";
+                    } else {
+                        title = "System data";
+                    }
+                    break;
+                }
+                break;
+        }
+    } else { //Use the tidcode directly
+        if (line == LINE_TITLE) {
+            title = memalign(32, 21); //We have to use dynamic memory for this part
+            free_title = true;
+            snprintf(title, 21, "%08X-%08X", tidtype, tidcode);
+        } else {
+            title = "";
+        }
+    }
+
+    s32 out = str2u16(outUnicode, ouSize, title, NULL);
+    free(title);
+    return out;
 }
