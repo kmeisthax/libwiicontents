@@ -27,10 +27,13 @@ distribution.
 -------------------------------------------------------------*/
 
 #include "wiienv.h"
+#include "wc_private.h"
 #include "wiicontents.h"
 
 //might as well be include <vulnerabilities.h>
 #include <string.h>
+
+#include <ogc/es.h>
 
 //useful addresses
 #define STUBHAXX_PTR 0x80001804
@@ -47,4 +50,18 @@ s32 __runningFromLoader(int* trueIfLoader) {
         *trueIfLoader = false;
         
     return WCT_OKAY;
+}
+
+s32 __lowerTidFromMemory(u32* outLowTid) {
+    u32* sysTid = (u32*)TID_LOWER_PTR;
+    
+    *outLowTid = sysTid;
+}
+
+s32 __TidFromES(u64* outTid) {
+    u64* sysTid ALIGN_32;
+    s32 ret = ES_GetTitleID(&sysTid);
+    
+    *outTid = *sysTid;
+    return ret
 }
