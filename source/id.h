@@ -1,8 +1,8 @@
 /*-------------------------------------------------------------
  
-wiicontents.c - easy access to channel data
-
-Copyright (C) 2009 kmeisthax
+id.h -- ES Identification code
+ 
+Copyright (C) 2008 tona
 Unless other credit specified
  
 This software is provided 'as-is', without any express or implied
@@ -24,32 +24,15 @@ must not be misrepresented as being the original software.
 3.This notice may not be removed or altered from any source
 distribution.
  
-A good number of support functions, mostly relating to exploiting
-ES_Identify, were borrowed from AnyTitle Deleter.
 -------------------------------------------------------------*/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <gccore.h>
-#include <wiiuse/wpad.h>
-#include <ogc/es.h>
-#include <ogc/ios.h>
+#ifndef _ID_H_
+#define _ID_H_
 
-#include "wiicontents.h"
+// Identify as the "super user"
+s32 Identify_SU(void);
 
-#include "../build/certs_dat.h"
-#include "../build/fake_su_tmd_dat.h"
-#include "../build/fake_su_ticket_dat.h"
+// Identify as the system menu
+s32 Identify_SysMenu(void);
 
-#include "detect_settings.h"
-#include "titles.h"
-#include "uninstall.h"
-#include "wiibasics.h"
-
-s32 WCT_Init() {
-	return miscInit();
-}
-
-s32 WCT_Deinit() {
-    return miscDeInit();
-}
+#endif

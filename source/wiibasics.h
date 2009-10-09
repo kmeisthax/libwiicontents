@@ -1,8 +1,8 @@
 /*-------------------------------------------------------------
  
-wiicontents.c - easy access to channel data
-
-Copyright (C) 2009 kmeisthax
+wiibasics.c -- basic Wii initialization and functions
+ 
+Copyright (C) 2008 tona
 Unless other credit specified
  
 This software is provided 'as-is', without any express or implied
@@ -24,32 +24,15 @@ must not be misrepresented as being the original software.
 3.This notice may not be removed or altered from any source
 distribution.
  
-A good number of support functions, mostly relating to exploiting
-ES_Identify, were borrowed from AnyTitle Deleter.
 -------------------------------------------------------------*/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <gccore.h>
-#include <wiiuse/wpad.h>
-#include <ogc/es.h>
-#include <ogc/ios.h>
+#ifndef _WII_BASICS_H_
+#define _WII_BASICS_H_
 
-#include "wiicontents.h"
+// Do our custom init: Identify and initialized ISFS driver
+s32 miscInit(void);
 
-#include "../build/certs_dat.h"
-#include "../build/fake_su_tmd_dat.h"
-#include "../build/fake_su_ticket_dat.h"
+// Clean up after ourselves (Deinit ISFS)
+s32 miscDeInit(void);
 
-#include "detect_settings.h"
-#include "titles.h"
-#include "uninstall.h"
-#include "wiibasics.h"
-
-s32 WCT_Init() {
-	return miscInit();
-}
-
-s32 WCT_Deinit() {
-    return miscDeInit();
-}
+#endif

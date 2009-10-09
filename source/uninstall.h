@@ -1,8 +1,8 @@
 /*-------------------------------------------------------------
  
-wiicontents.c - easy access to channel data
-
-Copyright (C) 2009 kmeisthax
+uninstall.h -- title uninstallation
+ 
+Copyright (C) 2008 tona
 Unless other credit specified
  
 This software is provided 'as-is', without any express or implied
@@ -24,32 +24,12 @@ must not be misrepresented as being the original software.
 3.This notice may not be removed or altered from any source
 distribution.
  
-A good number of support functions, mostly relating to exploiting
-ES_Identify, were borrowed from AnyTitle Deleter.
 -------------------------------------------------------------*/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <gccore.h>
-#include <wiiuse/wpad.h>
-#include <ogc/es.h>
-#include <ogc/ios.h>
+#ifndef _UNINSTALL_H_
+#define _UNINSTALL_H_
 
-#include "wiicontents.h"
+s32 Uninstall_FromTitle(const u64 tid);
+void uninstall_checked(u32 kind, u32 title);
 
-#include "../build/certs_dat.h"
-#include "../build/fake_su_tmd_dat.h"
-#include "../build/fake_su_ticket_dat.h"
-
-#include "detect_settings.h"
-#include "titles.h"
-#include "uninstall.h"
-#include "wiibasics.h"
-
-s32 WCT_Init() {
-	return miscInit();
-}
-
-s32 WCT_Deinit() {
-    return miscDeInit();
-}
+#endif

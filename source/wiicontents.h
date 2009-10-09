@@ -29,6 +29,8 @@ distribution.
 #ifndef __WCT_INCLUDE_H__
 #define __WCT_INCLUDE_H__
 
+#include <gctypes.h>
+
 //Operation successful.
 #define WCT_OKAY             0
 //A memory buffer you gave was not properly aligned.
@@ -39,7 +41,13 @@ distribution.
 #define WCT_ENOMEM          -3
 //There's no banner in this particular title.
 #define WCT_ENOBANNER       -4
-//You're an idiot. Try throwing some ice around.
+//You sent an empty buffer, or a NULL pointer
+#define WCT_EBADBUFFER      -5
+//Initialization failed.
+#define WCT_EISFSFAIL       -6
+//ES_Identify privledge escalation failed. (May or may not mean patched IOS!)
+#define WCT_ENOIDENTIFY     -7
+//You're an idiot.
 #define WCT_ECIRNO         0x2468
 
 
@@ -47,6 +55,10 @@ distribution.
 typedef enum {
     lang_en, lang_jp, lang_de, lang_fr, lang_es, lang_it, lang_nl
 } title_lang;
+
+typedef enum {
+    device_nand, device_sd
+} device_type;
 
 //Init functions.
 s32 WCT_Init(); //Initialize contents access, and attempt to exploit ES_Identify.
@@ -58,6 +70,7 @@ s32 WCT_TitleContentDir(char* outstring, u32 length, u64 tid);
 
 //Title name retrieving functions.
 //These functions will generate a somewhat useful name for any title.
+//If the title has a banner, we use that.
 //Names are split into two lines, only TitleName is shown on the menu.
 //TitleTagline is shown as the 2nd line on the Wii Message Board.
 s32 WCT_TitleNameUTF16(u16* outstring, u32 length, u64 tid, title_lang language);

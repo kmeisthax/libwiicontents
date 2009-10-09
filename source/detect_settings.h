@@ -1,8 +1,8 @@
 /*-------------------------------------------------------------
  
-wiicontents.c - easy access to channel data
-
-Copyright (C) 2009 kmeisthax
+detect_settings.h -- detects various system settings
+ 
+Copyright (C) 2008 tona
 Unless other credit specified
  
 This software is provided 'as-is', without any express or implied
@@ -24,32 +24,18 @@ must not be misrepresented as being the original software.
 3.This notice may not be removed or altered from any source
 distribution.
  
-A good number of support functions, mostly relating to exploiting
-ES_Identify, were borrowed from AnyTitle Deleter.
 -------------------------------------------------------------*/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <gccore.h>
-#include <wiiuse/wpad.h>
-#include <ogc/es.h>
-#include <ogc/ios.h>
+#ifndef __SYSMENU_DETECT_H_
+#define __SYSMENU_DETECT_H_
 
-#include "wiicontents.h"
+//Get the IOS version of a given title
+u64 get_title_ios(u64 title);
 
-#include "../build/certs_dat.h"
-#include "../build/fake_su_tmd_dat.h"
-#include "../build/fake_su_ticket_dat.h"
+//Get the region that the System menu is currently using
+u8 get_sysmenu_region(void);
 
-#include "detect_settings.h"
-#include "titles.h"
-#include "uninstall.h"
-#include "wiibasics.h"
+//Compare system region and sysmenu region, display warning.
+void check_region(void);
 
-s32 WCT_Init() {
-	return miscInit();
-}
-
-s32 WCT_Deinit() {
-    return miscDeInit();
-}
+#endif

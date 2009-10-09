@@ -1,8 +1,8 @@
 /*-------------------------------------------------------------
  
-wiicontents.c - easy access to channel data
-
-Copyright (C) 2009 kmeisthax
+titles.h -- functions for grabbing all titles of a certain type
+ 
+Copyright (C) 2008 tona
 Unless other credit specified
  
 This software is provided 'as-is', without any express or implied
@@ -24,32 +24,15 @@ must not be misrepresented as being the original software.
 3.This notice may not be removed or altered from any source
 distribution.
  
-A good number of support functions, mostly relating to exploiting
-ES_Identify, were borrowed from AnyTitle Deleter.
 -------------------------------------------------------------*/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <gccore.h>
-#include <wiiuse/wpad.h>
-#include <ogc/es.h>
-#include <ogc/ios.h>
+#ifndef _TITLES_H_
+#define _TITLES_H_
 
-#include "wiicontents.h"
+// Get the number of titles on the Wii of a given type
+s32 getTitles_TypeCount(u32 type, u32 *count);
 
-#include "../build/certs_dat.h"
-#include "../build/fake_su_tmd_dat.h"
-#include "../build/fake_su_ticket_dat.h"
+// Get the list of titles of this type
+s32 getTitles_Type(u32 type, u32 *titles, u32 count);
 
-#include "detect_settings.h"
-#include "titles.h"
-#include "uninstall.h"
-#include "wiibasics.h"
-
-s32 WCT_Init() {
-	return miscInit();
-}
-
-s32 WCT_Deinit() {
-    return miscDeInit();
-}
+#endif
