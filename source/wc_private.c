@@ -26,88 +26,74 @@ distribution.
  
 -------------------------------------------------------------*/
 
-#ifndef __WC_PRIVATE_C__
-#define __WC_PRIVATE_C__
+#include "wc_private.h"
 
-#include <stdlib.h>
 #include <math.h>
+#include "wiicontents.h"
 
-//From AnyTitle Deleter
-// Turn upper and lower into a full title ID
-#define TITLE_ID(x,y)		(((u64)(x) << 32) | (y))
-// Get upper or lower half of a title ID
-#define TITLE_UPPER(x)		((u32)((x) >> 32))
-// Turn upper and lower into a full title ID
-#define TITLE_LOWER(x)		((u32)(x))
-
-#define ISALIGNED(x) ((((u32)x)&0x1F)==0)
-#define ALIGN_32    __attribute__ ((aligned (32)))
-
-//A dirent is the size of a DOS filename plus . and \0. 8 + 1 + 3 + 1 = 13
-#define ISFS_DIRENT_SIZE 13
-
-void* memalign(unsigned int, unsigned int);
-void hex2u32(const char* inhex, u32* out32);
+//Annoying defines so you can switch on letters.
+#define ASCII_0 0x30
+#define ASCII_9 0x39
+#define ASCII_A 0x41
+#define ASCII_F 0x46
 
 void hex2u32(const char* inhex, u32* out32) {
     //Assume big endian representation
     int i = 0;
+    u32 cur32 = 0;
     for (; i < 8; i++) {
-        const char* ltr = inhex[i];
+        u8 ltr = (u8)inhex[i];
         int pwr = 7 - i;
-
-        switch (*ltr) {
-            case "0":
-                break;
-            case "1":
-                out32* += 1 * pow(16, pwr);
-                break;
-            case "2":
-                out32* += 2 * pow(16, pwr);
-                break;
-            case "3":
-                out32* += 3 * pow(16, pwr);
-                break;
-            case "4":
-                out32* += 4 * pow(16, pwr);
-                break;
-            case "5":
-                out32* += 5 * pow(16, pwr);
-                break;
-            case "6":
-                out32* += 6 * pow(16, pwr);
-                break;
-            case "7":
-                out32* += 7 * pow(16, pwr);
-                break;
-            case "8":
-                out32* += 8 * pow(16, pwr);
-                break;
-            case "9":
-                out32* += 9 * pow(16, pwr);
-                break;
-            case "A":
-                out32* += 10 * pow(16, pwr);
-                break;
-            case "B":
-                out32* += 11 * pow(16, pwr);
-                break;
-            case "C":
-                out32* += 12 * pow(16, pwr);
-                break;
-            case "D":
-                out32* += 13 * pow(16, pwr);
-                break;
-            case "E":
-                out32* += 14 * pow(16, pwr);
-                break;
-            case "F":
-                out32* += 15 * pow(16, pwr);
-                break;
+        
+        if (ltr <= ASCII_9 && ltr >= ASCII_0) {
+            int mag = ltr - ASCII_0;
+            cur32 = cur32 + mag * pow(16, pwr);
+        } else if (ltr <= ASCII_F && ltr >= ASCII_A) {
+            int mag = (ltr - ASCII_A) + 10;
+            cur32 = cur32 + mag * pow(16, pwr);
         }
     }
-
-    return 0;
+    
+    *out32 = cur32;
 }
 
-#endif
+//Convert strings to UTF16 strings.
+s32 str2u16(u16* outUtf16, size_t length, const char* inAscii, size_t* copied) {
+    if (outUtf16 == NULL || inAscii == NULL || length < 1) {
+        return WCT_EBADBUFFER;
+    }
+    
+    const char* curChar = inAscii;
+    u16* curUtf16 = outUtf16;
+    
+    int i = 0;
+
+    while (true) {
+        //Buffer edge check. Avoid overflows in style.
+        if ((i + 1) == length) {
+            //Write a nice null anyway.
+            *curUtf16 = 0;
+            break;
+        }
+        
+        //Otherwise continue copying characters.
+        *curUtf16 = (u16)*curChar;
+        
+        //Check if the byte we copied was NULL
+        if ((u8)(*curChar) == 0) {
+            //Done copying.
+            break;
+        }
+        
+        //Otherwise, move forward the pointers
+        curChar++;
+        curUtf16++;
+        i++;
+    }
+    
+    if (copied != NULL) { //this parameter is optional.
+        *copied = i;
+    }
+    
+    return WCT_OKAY;
+}
