@@ -57,14 +57,14 @@ typedef enum {
 } title_lang;
 
 typedef enum {
-    device_nand, device_sd
+    device_any, device_nand, device_sd
 } device_type;
 
 //Init functions.
 s32 WCT_Init(); //Initialize contents access, and attempt to exploit ES_Identify.
 s32 WCT_Deinit(); //Deinitialize WCT, which deinits ISFS.
 
-//Title mounting functions.
+//Title mounting functions. device_type will tell the system if you want to mount title data/contents from SD or NAND.
 s32 WCT_MountTitleContents(u64 tid, device_type device);
 s32 WCT_MountTitleData(u64 tid, device_type device);
 
