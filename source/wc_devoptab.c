@@ -140,13 +140,22 @@ int nand_open(struct _reent *r, void *fileStruct, const char *path, int flags, i
 }
 
 int nand_close (struct _reent *r, int fd) {
+    int out = 0;
+
+    if (fileStruct->underlying_fd < 0) {
+        r->_errno = EBADF;
+        out = -1;
+        goto finish_up;
+    }
+
     NandFile* fileStruct = (NandFile*) fd; //this supposedly works
     
     ISFS_Close(fileStruct->underlying_fd);
 
     fileStruct->underlying_fd = -1; //Invalidate the file.
 
-    return 0;
+    finish_up:
+    return out;
 }
 
 ssize_t nand_write(struct _reent *r, int fd, const char *ptr, size_t len) {
