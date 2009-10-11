@@ -91,7 +91,7 @@ int nand_open(struct _reent *r, void *fileStruct, const char *path, int flags, i
     else (fmode == O_RDWR)
         isfsmode = ISFS_OPEN_RW;
     else {
-        r->errno = EINVAL;
+        r->_errno = EINVAL;
         rcode = -1;
         goto finish_up; //yes, this is legitimate goto usage
     }
@@ -113,13 +113,13 @@ int nand_open(struct _reent *r, void *fileStruct, const char *path, int flags, i
     if (fhandle < 0) {
         switch (fhandle) {
             case ISFS_EINVAL:
-                r->errno = EINVAL;
+                r->_errno = EINVAL;
                 break;
             case ISFS_ENOMEM:
-                r->errno = ENOMEM;
+                r->_errno = ENOMEM;
                 break;
             default:
-                r->errno = EIO;
+                r->_errno = EIO;
                 break;
         }
         rcode = -1;
