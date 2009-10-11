@@ -141,6 +141,7 @@ int nand_open(struct _reent *r, void *fileStruct, const char *path, int flags, i
 
 int nand_close (struct _reent *r, int fd) {
     int out = 0;
+    NandFile* fileStruct = (NandFile*) fd;
 
     if (fileStruct->underlying_fd < 0) {
         r->_errno = EBADF;
@@ -160,7 +161,6 @@ int nand_close (struct _reent *r, int fd) {
 
 ssize_t nand_write(struct _reent *r, int fd, const char *ptr, size_t len) {
     ssize_t out = 0;
-
     NandFile* fileStruct = (NandFile*) fd;
 
     //Sanity check tiem!
