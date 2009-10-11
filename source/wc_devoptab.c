@@ -32,6 +32,8 @@ distribution.
 #include <string.h>
 #include <sys/iosupport.h>
 #include <ogc/isfs.h>
+#include <ogc/ios.h> //These are needed for the error defines
+#include <ogc/ipc.h> //This too
 #include <reent.h>
 #include <stdlib.h>
 
@@ -145,13 +147,45 @@ int nand_close (struct _reent *r, int fd) {
     return 0;
 }
 
+ssize_t nand_write(struct _reent *r, int fd, const char *ptr, size_t len) {
+    ssize_t out = 0;
+
+    NandFile* fileStruct = (NandFile*) fd;
+
+    //Sanity check tiem!
+    if (fileStruct->underlying_fd < 0) {
+        r->_errno = EBADF;
+        out = -1;
+        goto finish_up;
+    }
+        
+    out = ISFS_Write(fileStruct->underlying_fd, ptr, len);
+    if (out < 0) {
+        switch (out) {
+            case ISFS_EINVAL:
+            case IPC_EINVAL:
+                r->_errno = EINVAL;
+                break;
+            case ISFS_ENOMEM:
+            case IPC_ENOMEM:
+                r->_errno = ENOMEM;
+                break;
+        }
+        out = -1;
+        goto finish_up;
+    }
+
+    finish_up:
+    return out;
+}
+
 //Template devoptab struct for NAND mounts
 const devoptab_t nand_mount = {
     NULL, //device name, FILL THIS IN
     sizeof(NandFile),
     nand_open, //int (*open_r)(struct _reent *r, void *fileStruct, const char *path, int flags, int mode);
     nand_close, //int (*close_r)(struct _reent *r, int fd);
-    NULL, //ssize_t (*write_r)(struct _reent *r, int fd, const char *ptr, size_t len);
+    nand_write, //ssize_t (*write_r)(struct _reent *r, int fd, const char *ptr, size_t len);
     NULL, //ssize_t (*read_r)(struct _reent *r, int fd, char *ptr, size_t len);
     NULL, //off_t (*seek_r)(struct _reent *r, int fd, off_t pos, int dir);
     NULL, //int (*fstat_r)(struct _reent *r, int fd, struct stat *st);
