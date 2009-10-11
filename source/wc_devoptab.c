@@ -135,12 +135,20 @@ int nand_open(struct _reent *r, void *fileStruct, const char *path, int flags, i
     return rcode;
 }
 
+int nand_close (struct _reent *r, int fd) {
+    NandFile* fileStruct = (NandFile*) fd; //this supposedly works
+    
+    ISFS_Close(fileStruct->underlying_fd);
+
+    return 0;
+}
+
 //Template devoptab struct for NAND mounts
 const devoptab_t nand_mount = {
     NULL, //device name, FILL THIS IN
     sizeof(NandFile),
     nand_open, //int (*open_r)(struct _reent *r, void *fileStruct, const char *path, int flags, int mode);
-    NULL, //int (*close_r)(struct _reent *r, int fd);
+    nand_close, //int (*close_r)(struct _reent *r, int fd);
     NULL, //ssize_t (*write_r)(struct _reent *r, int fd, const char *ptr, size_t len);
     NULL, //ssize_t (*read_r)(struct _reent *r, int fd, char *ptr, size_t len);
     NULL, //off_t (*seek_r)(struct _reent *r, int fd, off_t pos, int dir);
