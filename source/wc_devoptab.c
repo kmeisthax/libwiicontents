@@ -79,19 +79,7 @@ const devoptab_t* __getDevice(const char* path) {
 //Open a file on the nand FS
 int nand_open(struct _reent *r, void *fileStruct, const char *path, int flags, int mode) {
     int rcode = 0;
-    
-    const devoptab_t* nand_device = __getDevice(path);
-    NandMountData* private_vars = (NandMountData*)nand_device->deviceData;
-    
-    //Cast the memory buffer into a NandFile
-    NandFile *file = (NandFile*) fileStruct;
-    
-    //Get the real file path (i.e. reverse chrooting)
-    size_t bufSize = strlen(private_vars->chroot_prefix) + strlen(path) + 1;
-    char* realPath = memalign(32,bufSize);
-    strlcpy(realPath, private_vars->chroot_prefix, bufSize);
-    strlcat(realPath, path, bufSize);
-        
+
     //Get the mode
     int fmode = (flags & 0x03);
     u8 isfsmode = 0;
@@ -105,8 +93,20 @@ int nand_open(struct _reent *r, void *fileStruct, const char *path, int flags, i
     else {
         r->errno = EINVAL;
         rcode = -1;
-        goto unalloc_realpath;
+        goto finish_up; //yes, this is legitimate goto usage
     }
+    
+    const devoptab_t* nand_device = __getDevice(path);
+    NandMountData* private_vars = (NandMountData*)nand_device->deviceData;
+    
+    //Cast the memory buffer into a NandFile
+    NandFile* file = (NandFile*) fileStruct;
+    
+    //Get the real file path (i.e. reverse chrooting)
+    size_t bufSize = strlen(private_vars->chroot_prefix) + strlen(path) + 1;
+    char* realPath = memalign(32,bufSize);
+    strlcpy(realPath, private_vars->chroot_prefix, bufSize);
+    strlcat(realPath, path, bufSize);
     
     s32 fhandle = ISFS_Open(realPath, isfsmode);
     
@@ -131,7 +131,7 @@ int nand_open(struct _reent *r, void *fileStruct, const char *path, int flags, i
     unalloc_realpath:
     free(realPath);
     
-    exitcode:
+    finish_up:
     return rcode;
 }
 
@@ -139,7 +139,7 @@ int nand_open(struct _reent *r, void *fileStruct, const char *path, int flags, i
 const devoptab_t nand_mount = {
     NULL, //device name, FILL THIS IN
     sizeof(NandFile),
-    NULL, //int (*open_r)(struct _reent *r, void *fileStruct, const char *path, int flags, int mode);
+    nand_open, //int (*open_r)(struct _reent *r, void *fileStruct, const char *path, int flags, int mode);
     NULL, //int (*close_r)(struct _reent *r, int fd);
     NULL, //ssize_t (*write_r)(struct _reent *r, int fd, const char *ptr, size_t len);
     NULL, //ssize_t (*read_r)(struct _reent *r, int fd, char *ptr, size_t len);
