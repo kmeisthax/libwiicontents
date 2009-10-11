@@ -224,6 +224,40 @@ ssize_t nand_read (struct _reent *r, int fd, char *ptr, size_t len) {
     return out;
 }
 
+off_t nand_seek(struct _reent *r, int fd, off_t pos, int dir) {
+    off_t out = 0;
+    s32 ret = 0;
+    NandFile* fileStruct = (NandFile*) fd;
+
+    if (fileStruct->underlying_fd < 0) {
+        r->_errno = EBADF;
+        out = -1;
+        goto finish_up;
+    }
+
+    ret = ISFS_Seek(fileStruct->underlying_fd, pos, dir);
+    if (ret < 0) {
+        switch (out) {
+            case ISFS_EINVAL:
+            case IPC_EINVAL:
+                r->_errno = EINVAL;
+                break;
+            case ISFS_ENOMEM:
+            case IPC_ENOMEM:
+                r->_errno = ENOMEM;
+                break;
+            default:
+                r->_errno = EIO;
+        }
+        out = -1;
+        goto finish_up;
+    } else {
+        out = ret;
+    }
+
+    return out;
+}
+
 //Template devoptab struct for NAND mounts
 const devoptab_t nand_mount = {
     NULL, //device name, FILL THIS IN
@@ -232,7 +266,7 @@ const devoptab_t nand_mount = {
     nand_close, //int (*close_r)(struct _reent *r, int fd);
     nand_write, //ssize_t (*write_r)(struct _reent *r, int fd, const char *ptr, size_t len);
     nand_read, //ssize_t (*read_r)(struct _reent *r, int fd, char *ptr, size_t len);
-    NULL, //off_t (*seek_r)(struct _reent *r, int fd, off_t pos, int dir);
+    nand_seek, //off_t (*seek_r)(struct _reent *r, int fd, off_t pos, int dir);
     NULL, //int (*fstat_r)(struct _reent *r, int fd, struct stat *st);
     NULL, //int (*stat_r)(struct _reent *r, const char *file, struct stat *st);
     NULL, //int (*link_r)(struct _reent *r, const char *existing, const char  *newLink);
