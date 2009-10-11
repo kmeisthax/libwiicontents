@@ -115,9 +115,11 @@ int nand_open(struct _reent *r, void *fileStruct, const char *path, int flags, i
     if (fhandle < 0) {
         switch (fhandle) {
             case ISFS_EINVAL:
+            case IPC_EINVAL:
                 r->_errno = EINVAL;
                 break;
             case ISFS_ENOMEM:
+            case IPC_ENOMEM:
                 r->_errno = ENOMEM;
                 break;
             default:
@@ -170,6 +172,8 @@ ssize_t nand_write(struct _reent *r, int fd, const char *ptr, size_t len) {
             case IPC_ENOMEM:
                 r->_errno = ENOMEM;
                 break;
+            default:
+                r->_errno = EIO;
         }
         out = -1;
         goto finish_up;
