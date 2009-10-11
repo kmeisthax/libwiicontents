@@ -140,6 +140,8 @@ int nand_close (struct _reent *r, int fd) {
     
     ISFS_Close(fileStruct->underlying_fd);
 
+    fileStruct->underlying_fd = -1; //Invalidate the file.
+
     return 0;
 }
 
