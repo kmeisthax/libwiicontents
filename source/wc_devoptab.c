@@ -55,9 +55,17 @@ typedef struct {
 } NandDirectory;
 
 typedef struct {
-    char* chroot_prefix;
+    //All prefixes must START with a / and must not END with a /.
+    //If they are empty, they must be empty strings and not a single /.
+    const char* chroot_prefix; //This is immovable.
+    char* curdir_prefix; //This is movable.
 } NandMountData;
 
+typedef struct {
+    PathList* prev;
+    char* name;
+    PathList* next;
+} PathList;
 
 const devoptab_t* __getDevice(const char* path) {
     char* devName = malloc(strlen(path));
@@ -65,6 +73,71 @@ const devoptab_t* __getDevice(const char* path) {
     const devoptab_t* out = getDeviceOpTab(devName);
     free(devName);
     return out;
+}
+
+//Emulate . and .. in paths by splitting a path into a linked list, removing the
+//. and .. entries, and then collapsing it back into a Cstring.
+void __collapsepath (char* outPath, size_t outLen, const char* inPath) {
+    //Copy the const buffer into an internal buffer, since strtok writes NULLs
+    char* pathbuf = strdup(inPath);
+    
+    //Setup the linkedlist
+    PathList* root = malloc(sizeof(PathList));
+    PathList* curPath = root;
+    root->prev = NULL;
+    root->name = NULL;
+    root->next = NULL;
+    
+    char* curTok = strsep(&pathbuf, "/");
+    
+    //Build up the list
+    do {
+        if (*curTok == "." || *curTok == "\0") {
+            continue;
+        } else if (strcmp(curTok, "..") == 0) {
+            //Are we at the root?
+            if (curPath->prev = NULL)
+                continue; //we can't go before the root
+            else {
+                //Remove the current directory
+                curPath = curPath->prev;
+                free(curPath->next);
+                curPath->next = NULL;
+            }
+        } else {
+            curPath->next = malloc(sizeof(PathList));
+            curPath->name = curTok;
+            curPath->next->prev = curPath;
+            curPath->next->next = NULL; //always init your unused memory!
+            
+            curPath = curPath->next;
+        }
+        
+        curTok = strsep(&pathbuf, "/");
+    } while (curTok != NULL);
+    
+    //Collapse it back down
+    *outPath = "\0" //Ensure the string is null terminated
+    curPath = root;
+    
+    while (curPath != NULL && curPath->name != NULL) {
+        strlcat(outPath, curPath->name, outLen);
+        strlcat(outPath, "/", outLen);
+        
+        //Traverse backwards, deleting as we go
+        curPath = curPath->prev;
+        free(curPath->next);
+    }
+    
+    free(pathbuf);
+}
+
+//Ensure that the path pointed to by inPath is a valid one.
+int __validatepath (const char* inPath) {
+    s32 ret = ISFS_ReadDir(inPath, NULL, NULL);
+    
+    if (ret == ISFS_OK) return TRUE;
+    return FALSE;
 }
 
 //Open a file on the nand FS
@@ -86,18 +159,38 @@ int nand_open(struct _reent *r, void *fileStruct, const char *path, int flags, i
         rcode = -1;
         goto finish_up; //yes, this is legitimate goto usage
     }
-    
+     
     const devoptab_t* nand_device = __getDevice(path);
     NandMountData* private_vars = (NandMountData*)nand_device->deviceData;
     
     //Cast the memory buffer into a NandFile
     NandFile* file = (NandFile*) fileStruct;
     
+    //Strip out the device name
+    char* dirs = strdup(path);
+    pathdirs(dirs, strlen(path), path);
+    
+    //Check if path is absolute (Starts with '/') or relative to curdir_prefix
+    size_t bufSize = strlen(private_vars->chroot_prefix) + strlen(dirs) + 1; //Absolut path.
+    char* absPath = dirs;
+
+    if (*dirs != "/") {
+        bufSize += strlen(private_vars->curdir_prefix);
+        
+        //Allocate space for a new path
+        absPath = malloc(bufSize);
+        strlcpy(absPath, private_vars->curdir_prefix, bufSize);
+        strlcat(absPath, "/", bufSize); //This path does not have a separator.
+        strlcat(absPath, dirs, bufSize);
+        
+        //Collapse the path
+        __collapsepath(absPath, bufSize, absPath);
+    }
+    
     //Get the real file path (i.e. reverse chrooting)
-    size_t bufSize = strlen(private_vars->chroot_prefix) + strlen(path) + 1;
     char* realPath = memalign(32,bufSize);
     strlcpy(realPath, private_vars->chroot_prefix, bufSize);
-    strlcat(realPath, path, bufSize);
+    strlcat(realPath, absPath, bufSize);
     
     s32 fhandle = ISFS_Open(realPath, isfsmode);
     
@@ -116,13 +209,20 @@ int nand_open(struct _reent *r, void *fileStruct, const char *path, int flags, i
                 break;
         }
         rcode = -1;
-        goto unalloc_realpath;
+        goto unalloc_absPath;
     }
     
     fileStruct->underlying_fd = fhandle;
     
-    unalloc_realpath:
+    unalloc_absPath:
+    if (absPath != dirs)
+        free(absPath);
+    
+    unalloc_realPath:
     free(realPath);
+    
+    unalloc_dirs:
+    free(dirs);
     
     finish_up:
     return rcode;
@@ -247,6 +347,55 @@ off_t nand_seek(struct _reent *r, int fd, off_t pos, int dir) {
     return out;
 }
 
+int nand_chdir (struct _reent *r, const char *name) {
+    int out = 0;
+    
+    const devoptab_t* nand_device = __getDevice(name);
+    NandMountData* private_vars = (NandMountData*)nand_device->deviceData;
+    
+    //Get the new cwd
+    char* newPath = 0;
+    size_t newPathSize = 0;
+    
+    if (*name = "/") { //simple case: Absolute chdir path replacement
+        newPath = strdup(name);
+    } else {
+        newPathSize = strlen(private_vars->curdir_prefix) + strlen(name) + 2;
+        newPath = malloc(newPathSize);
+        
+        strlcpy(newPath, private_vars->curdir_prefix, newPathSize);
+        strlcat(newPath, "/", newPathSize);
+        strlcat(newPath, name, newPathSize);
+    }
+    
+    //Collapse the path
+    __collapsepath(newPath, newPathSize, newPath);
+    
+    //Remove trailing slashes
+    char* trailingslash = strrchr(newPath, "/");
+    
+    while (trailingslash != NULL) {
+        *trailingslash = "\0";
+        trailingslash = strrchr(newPath, "/");
+    }
+    
+    //Check the path is vaild
+    if (!__validatepath(newPath)) {
+        free(newPath);
+        out = -1;
+        r->_errno = ENOTDIR;
+        goto finish_up;
+    }
+    
+    //Clean up    
+    set_curdir:
+    free(private_vars->curdir_prefix);
+    private_vars->curdir_prefix = newPath;
+    
+    finish_up:
+    return out;
+}
+
 //Template devoptab struct for NAND mounts
 const devoptab_t nand_mount = {
     NULL, //device name, FILL THIS IN
@@ -260,7 +409,7 @@ const devoptab_t nand_mount = {
     NULL, //int (*stat_r)(struct _reent *r, const char *file, struct stat *st);
     NULL, //int (*link_r)(struct _reent *r, const char *existing, const char  *newLink);
     NULL, //int (*unlink_r)(struct _reent *r, const char *name);
-    NULL, //int (*chdir_r)(struct _reent *r, const char *name);
+    nand_chdir, //int (*chdir_r)(struct _reent *r, const char *name);
     NULL, //int (*rename_r) (struct _reent *r, const char *oldName, const char *newName);
     NULL, //int (*mkdir_r) (struct _reent *r, const char *path, int mode);
     
