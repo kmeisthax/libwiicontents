@@ -97,3 +97,28 @@ s32 str2u16(u16* outUtf16, size_t length, const char* inAscii, size_t* copied) {
     
     return WCT_OKAY;
 }
+
+//Get the device name out of a path.
+void pathname (char* outDevice, size_t outLen, const char* inPath) {
+    //Copy bytes before ":" to outDevice
+    char* endOfDeviceName = strchr(inPath, ":");
+    size_t len = (int)endOfDeviceName - (int)inPath;
+    
+    if (outLen < len)
+        len = outLen;
+    
+    strlcpy(outDevice, inPath, len);
+}
+
+//get the directory part out of a path.
+void pathdirs (char* outPath, size_t outLen, const char* inPath) {
+    //Copy bytes AFTER ":" to outPath
+    char* endOfDeviceName = strchr(inPath, ":");
+    size_t len = (int)endOfDeviceName - (int)inPath;
+    len = strlen(inPath) - len;
+    
+    if (outLen < len)
+        len = outLen;
+    
+    strlcpy(outPath, (endOfDeviceName + 1), len);
+}

@@ -46,6 +46,8 @@ distribution.
 //A dirent is the size of a DOS filename plus . and \0. 8 + 1 + 3 + 1 = 13
 #define ISFS_DIRENT_SIZE 13
 
+void pathname(char* outDevice, size_t outLen, const char* inPath);
+void pathdirs(char* outPath, size_t outLen, const char* inPath)
 void* memalign(unsigned int, unsigned int);
 void hex2u32(const char* inhex, u32* out32);
 s32 str2u16(u16* outUtf16, size_t length, const char* inAscii, size_t* copied);

@@ -58,21 +58,10 @@ typedef struct {
     char* chroot_prefix;
 } NandMountData;
 
-//(reentrantly!) get the device name out of a path.
-void __pathname (char* outDevice, size_t outLen, const char* inPath) {
-    //Copy bytes before ":" to outDevice
-    char* endOfDeviceName = strchr(inPath, ":");
-    size_t len = (int)endOfDeviceName - (int)inPath;
-    
-    if (outLen < len)
-        len = outLen;
-    
-    strlcpy(outDevice, inPath, len);
-}
 
 const devoptab_t* __getDevice(const char* path) {
     char* devName = malloc(strlen(path));
-    __pathname(devName, strlen(path), path);
+    pathname(devName, strlen(path), path);
     const devoptab_t* out = getDeviceOpTab(devName);
     free(devName);
     return out;
