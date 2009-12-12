@@ -218,27 +218,19 @@ int nand_open(struct _reent *r, void *fileStruct, const char *path, int flags, i
     char* dirs = strdup(path);
     pathdirs(dirs, strlen(path), path);
     
-    //Check if path is absolute (Starts with '/') or relative to curdir_prefix
-    size_t bufSize = strlen(private_vars->chroot_prefix) + strlen(dirs) + 1; //Absolut path.
-    char* absPath = dirs;
-
-    if (*dirs != "/") {
-        bufSize += strlen(private_vars->curdir_prefix);
-        
-        //Allocate space for a new path
-        absPath = malloc(bufSize);
-        strlcpy(absPath, private_vars->curdir_prefix, bufSize);
-        strlcat(absPath, "/", bufSize); //This path does not have a separator.
-        strlcat(absPath, dirs, bufSize);
-        
-        //Collapse the path
-        __collapsepath(absPath, bufSize, absPath);
+    size_t realPathSize;
+    char* realPath = NULL;
+    
+    __expandpath(&realPathSize, realPath, 0, dirs, private_vars);
+    realPath = malloc(realPathSize);
+    
+    if(realPath == NULL) {
+        r->_errno = ENOMEM;
+        rcode = -1;
+        goto finish_up;
     }
     
-    //Get the real file path (i.e. reverse chrooting)
-    char* realPath = memalign(32,bufSize);
-    strlcpy(realPath, private_vars->chroot_prefix, bufSize);
-    strlcat(realPath, absPath, bufSize);
+    __expandpath(NULL, realPath, realPathSize, dirs, private_vars);
     
     s32 fhandle = ISFS_Open(realPath, isfsmode);
     
@@ -257,14 +249,10 @@ int nand_open(struct _reent *r, void *fileStruct, const char *path, int flags, i
                 break;
         }
         rcode = -1;
-        goto unalloc_absPath;
+        goto unalloc_realPath;
     }
     
     fileStruct->underlying_fd = fhandle;
-    
-    unalloc_absPath:
-    if (absPath != dirs)
-        free(absPath);
     
     unalloc_realPath:
     free(realPath);
@@ -442,51 +430,66 @@ int nand_chdir (struct _reent *r, const char *name) {
     return out;
 }
 
-//Take a relative or absolute path and write out a corrected path.
-s32 __expandpath(size_t* correctLen, char *outPath, size_t pathLen, const char *inPath, NandMountData* private_vars) {
-    s32 out = 0;
-    size_t pathSize = strlen(private_vars->chroot_prefix) + strlen(inPath) + 1;
-    char* tmpbuf = NULL;
+int nand_rename (struct _reent *r, const char *oldName, const char *newName) {
+    //This is easy: the underlying function is s32 ISFS_Rename(const char *filepathOld,const char *filepathNew);
+    //Convert 'em into absolute paths, un-chroot 'em, and call the underlying function.
+    int out = 0;
     
-    if (*inPath != "/") {
-        //Non-absolute path
-        pathSize += strlen(private_vars->curdir_prefix);
+    const devoptab_t* nand_device = __getDevice(path);
+    NandMountData* private_vars = (NandMountData*)nand_device->deviceData;
+    
+    char* oldPath = strdup(oldName);
+    if (oldPath == NULL)
+        goto error_nomem;
         
-        if (outPath != NULL) {
-            tmpbuf = malloc(pathSize);
-            if (tmpbuf == NULL) {
-                out = -1;
-                goto error_nomem;
-            }
+    char* newPath = strdup(newName);
+    if (newPath == NULL)
+        goto dealloc_oldpath;
+    
+    pathdirs(oldPath, strlen(oldName), oldName);
+    pathdirs(newPath, strlen(newName), newName);
+    
+    //Now, to get absolute and correct paths...
+    size_t oldPathSize = strlen(private_vars->chroot_prefix) + strlen(oldPath) + 1;
+    size_t newPathSize = strlen(private_vars->chroot_prefix) + strlen(newPath) + 1;
+    
+    char* absOldPath = oldPath;
+    char* absNewPath = newPath;
+    
 
-            strlcpy(tmpbuf, private_vars->chroot_prefix, pathSize);            
-            strlcat(tmpbuf, private_vars->curdir_prefix, pathSize);
-            strlcat(tmpbuf, "/", pathSize);
-            strlcat(tmpbuf, inPath, pathSize);
+    
+    //newPath is not absolute. Fix that.
+    if (*absNewPath != "/") {
+        oldPathSize += strlen(private_vars->curdir_prefix);
         
-            __collapsepath(absOldPath, oldPathSize, absOldPath);
-            strlcpy(outPath, tmpbuf, pathLen);
-        }
-    } else if (outPath != NULL) {
-        //Absolute path
-        tmpbuf = malloc(pathSize);
-        if (tmpbuf == NULL) {
-            out = -1;
-            goto error_nomem;
-        }
-
-        strlcpy(tmpbuf, private_vars->chroot_prefix, pathSize);
-        strlcat(tmpbuf, inPath, pathSize);
-
-        __collapsepath(absOldPath, oldPathSize, absOldPath);
-        strlcpy(outPath, tmpbuf, pathLen);
+        absNewPath = malloc(newPathSize);
+        if (absNewPath == NULL)
+            goto dealloc_newpath;
+            
+        strlcpy(absNewPath, private_vars->curdir_prefix, newPathSize);
+        strlcat(absNewPath, "/", newPathSize);
+        strlcat(absNewPath, newPath, newPathSize);
+        
+        __collapsepath(absNewPath, newPathSize, absNewPath);
     }
     
-    if (correctLen != NULL)
-        *correctLen = pathSize;
-        
+    
+    dealloc_newpath:
+    free(newPath);
+    
+    dealloc_oldpath:
+    free(oldPath);
+    
     error_nomem:
-    return;
+    r->_errno = ENOMEM;
+    out = -1;
+    
+    finish_up:
+    return out;
+}
+
+int nand_mkdir (struct _reent *r, const char *path, int mode) {
+    //Not implemented: Need to find a way to auto-generate the user/group IDs.
 }
 
 //Template devoptab struct for NAND mounts
