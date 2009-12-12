@@ -394,6 +394,53 @@ int nand_chdir (struct _reent *r, const char *name) {
     return out;
 }
 
+//Take a relative or absolute path and write out a corrected path.
+s32 __expandpath(size_t* correctLen, char *outPath, size_t pathLen, const char *inPath, NandMountData* private_vars) {
+    s32 out = 0;
+    size_t pathSize = strlen(private_vars->chroot_prefix) + strlen(inPath) + 1;
+    char* tmpbuf = NULL;
+    
+    if (*inPath != "/") {
+        //Non-absolute path
+        pathSize += strlen(private_vars->curdir_prefix);
+        
+        if (outPath != NULL) {
+            tmpbuf = malloc(pathSize);
+            if (tmpbuf == NULL) {
+                out = -1;
+                goto error_nomem;
+            }
+
+            strlcpy(tmpbuf, private_vars->chroot_prefix, pathSize);            
+            strlcat(tmpbuf, private_vars->curdir_prefix, pathSize);
+            strlcat(tmpbuf, "/", pathSize);
+            strlcat(tmpbuf, inPath, pathSize);
+        
+            __collapsepath(absOldPath, oldPathSize, absOldPath);
+            strlcpy(outPath, tmpbuf, pathLen);
+        }
+    } else if (outPath != NULL) {
+        //Absolute path
+        tmpbuf = malloc(pathSize);
+        if (tmpbuf == NULL) {
+            out = -1;
+            goto error_nomem;
+        }
+
+        strlcpy(tmpbuf, private_vars->chroot_prefix, pathSize);
+        strlcat(tmpbuf, inPath, pathSize);
+
+        __collapsepath(absOldPath, oldPathSize, absOldPath);
+        strlcpy(outPath, tmpbuf, pathLen);
+    }
+    
+    if (correctLen != NULL)
+        *correctLen = pathSize;
+        
+    error_nomem:
+    return;
+}
+
 //Template devoptab struct for NAND mounts
 const devoptab_t nand_mount = {
     NULL, //device name, FILL THIS IN
