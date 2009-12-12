@@ -237,8 +237,6 @@ int nand_close (struct _reent *r, int fd) {
         out = -1;
         goto finish_up;
     }
-
-    NandFile* fileStruct = (NandFile*) fd; //this supposedly works
     
     ISFS_Close(fileStruct->underlying_fd);
 
