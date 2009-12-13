@@ -421,7 +421,7 @@ int nand_chdir (struct _reent *r, const char *name) {
         goto finish_up;
     }
     
-    //Clean up    
+    //Clean up
     set_curdir:
     free(private_vars->curdir_prefix);
     private_vars->curdir_prefix = newPath;
@@ -439,50 +439,79 @@ int nand_rename (struct _reent *r, const char *oldName, const char *newName) {
     NandMountData* private_vars = (NandMountData*)nand_device->deviceData;
     
     char* oldPath = strdup(oldName);
-    if (oldPath == NULL)
-        goto error_nomem;
+    if (oldPath == NULL) {
+        out = -1;
+        r->_errno = ENOMEM;
+        goto finish_up;
+    }
         
     char* newPath = strdup(newName);
-    if (newPath == NULL)
+    if (newPath == NULL) {
+        out = -1;
+        r->_errno = ENOMEM;
         goto dealloc_oldpath;
+    }
     
     pathdirs(oldPath, strlen(oldName), oldName);
     pathdirs(newPath, strlen(newName), newName);
     
     //Now, to get absolute and correct paths...
-    size_t oldPathSize = strlen(private_vars->chroot_prefix) + strlen(oldPath) + 1;
-    size_t newPathSize = strlen(private_vars->chroot_prefix) + strlen(newPath) + 1;
+    size_t oldPathSize;
+    size_t newPathSize;
     
-    char* absOldPath = oldPath;
-    char* absNewPath = newPath;
+    __expandpath(&oldPathSize, NULL, 0, oldPath, private_vars);
+    __expandpath(&newPathSize, NULL, 0, newPath, private_vars);
     
-
-    
-    //newPath is not absolute. Fix that.
-    if (*absNewPath != "/") {
-        oldPathSize += strlen(private_vars->curdir_prefix);
-        
-        absNewPath = malloc(newPathSize);
-        if (absNewPath == NULL)
-            goto dealloc_newpath;
-            
-        strlcpy(absNewPath, private_vars->curdir_prefix, newPathSize);
-        strlcat(absNewPath, "/", newPathSize);
-        strlcat(absNewPath, newPath, newPathSize);
-        
-        __collapsepath(absNewPath, newPathSize, absNewPath);
+    char* oldPathAbs = malloc(oldPathSize);
+    if (oldPathAbs == NULL) {
+        out = -1;
+        r->_errno = ENOMEM;
+        goto dealloc_newpath;
     }
     
+    char* newPathAbs = malloc(newPathSize);
+    if (newPathAbs == NULL) {
+        out = -1;
+        r->_errno = ENOMEM;
+        goto dealloc_oldpathabs;
+    }
+    
+    __expandpath(NULL, oldPathAbs, oldPathSize, oldPath, private_vars);
+    __expandpath(NULL, newPathAbs, newPathSize, newPath, private_vars);
+    
+    //Paths are correct, call ISFS
+    s32 isfs_err = ISFS_Rename(oldPathAbs, newPathAbs);
+    
+    switch (isfs_err) {
+        case ISFS_EINVAL:
+        case IPC_EINVAL:
+            r->_errno = EINVAL;
+            out = -1;
+            goto dealloc_newpathabs;
+        case ISFS_ENOMEM:
+        case IPC_ENOMEM:
+            r->_errno = ENOMEM;
+            out = -1;
+            goto dealloc_newpathabs;
+        default:
+            if (isfs_err < 0) {
+                r->_errno = EIO;
+                out = -1;
+                goto dealloc_newpathabs;
+            }
+    }
+    
+    dealloc_newpathabs:
+    free(newPathAbs);
+    
+    dealloc_oldpathabs:
+    free(oldPathAbs);
     
     dealloc_newpath:
     free(newPath);
     
     dealloc_oldpath:
     free(oldPath);
-    
-    error_nomem:
-    r->_errno = ENOMEM;
-    out = -1;
     
     finish_up:
     return out;
@@ -506,7 +535,7 @@ const devoptab_t nand_mount = {
     NULL, //int (*link_r)(struct _reent *r, const char *existing, const char  *newLink);
     NULL, //int (*unlink_r)(struct _reent *r, const char *name);
     nand_chdir, //int (*chdir_r)(struct _reent *r, const char *name);
-    NULL, //int (*rename_r) (struct _reent *r, const char *oldName, const char *newName);
+    nand_rename, //int (*rename_r) (struct _reent *r, const char *oldName, const char *newName);
     NULL, //int (*mkdir_r) (struct _reent *r, const char *path, int mode);
     
     sizeof(NandDirectory),
