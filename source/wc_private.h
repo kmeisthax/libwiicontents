@@ -46,6 +46,11 @@ distribution.
 //A dirent is the size of a DOS filename plus . and \0. 8 + 1 + 3 + 1 = 13
 #define ISFS_DIRENT_SIZE 13
 
+//The SD initialization vector for decrypting SD contents.
+//For some reason, ES knows the key but not the IV.
+u8* sd_iv = {0x21, 0x67, 0x12, 0xe6, 0xaa, 0x1f, 0x68, 0x9f,
+             0x95, 0xc5, 0xa2, 0x23, 0x24, 0xdc, 0x6a, 0x98};
+
 void* memalign(unsigned int, unsigned int);
 void hex2u32(const char* inhex, u32* out32);
 s32 str2u16(u16* outUtf16, size_t length, const char* inAscii, size_t* copied);
