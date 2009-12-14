@@ -34,18 +34,22 @@ distribution.
 
 //Structs
 typedef struct {
-    u8 buildtag[0x30]; //Some weird build tag at the beginning of a 00000000.app IMET
-    u8 buildaddr[0x10]; //Another weird buildtag in an IMET.
-    u8 zeroes[0x40]; // padding, 0x80 for Opening.bnr
     u32 imet; // "IMET"
     u8 unk[8];  // 0x0000060000000003 fixed, unknown purpose
     u32 sizes[3]; // icon.bin, banner.bin, sound.bin
     u32 flag1; // unknown
     u16 names[7][2][21]; // JP, EN, DE, FR, ES, IT, NL, stored as UTF16
+} __attribute__((packed)) IMETCore;
+
+typedef struct {
+    u8 buildtag[0x30]; //Some weird build tag at the beginning of a 00000000.app IMET
+    u8 buildaddr[0x10]; //Another weird buildtag in an IMET.
+    u8 zeroes[0x40]; // padding, 0x80 for Opening.bnr
+    IMETCore data;
     u8 zeroes_2[0x348]; // padding
-    u8 crypto[16]; // MD5 of 0x40 to 0x640 in header (for 00000000.app, Opening.bnr is 0x80 to 0x680). 
+    u8 hash[16]; // MD5 of 0x40 to 0x640 in header (for 00000000.app, Opening.bnr is 0x80 to 0x680). 
                       // crypto should be all 0's when calculating final MD5
-} __attribute__((packed)) IMET;
+} __attribute__((packed)) IMETNand;
 
 //Constants
 #define IMET_MAGIC 0x494D4554 //"IMET"

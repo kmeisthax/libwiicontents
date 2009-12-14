@@ -46,7 +46,7 @@ s32 __makeContentPath(u64 tid, char* outASCII, size_t oaSize) {
     return WCT_OKAY;
 }
 
-s32 __findIMETinTitle(u64 tid, u32* cid, IMET* outIMET) {
+s32 __findIMETinTitle(u64 tid, u32* cid, IMETNand* outIMET) {
     s32 errno;
     IMET malignedIMET ALIGN_32;
     
@@ -75,7 +75,7 @@ s32 __findIMETinTitle(u64 tid, u32* cid, IMET* outIMET) {
             errno = ISFS_Read(fd, (void*) &malignedIMET, sizeof(IMET));
             ISFS_Close(fd);
             //Check to see if this is a valid IMET
-            if (malignedIMET.imet == IMET_MAGIC) {
+            if (malignedIMET.data.imet == IMET_MAGIC) {
                 //Found the IMET!
                 bannerfound = true;
                 hex2u32(cur_dirent, cid);
@@ -95,7 +95,7 @@ s32 __findIMETinTitle(u64 tid, u32* cid, IMET* outIMET) {
     return WCT_OKAY;
 }
 
-s32 __getNameInIMET(IMET* inIMET, u16* outUnicode, size_t ouSize, title_lang language, int line) {
+s32 __getNameInIMET(IMETNand* inIMET, u16* outUnicode, size_t ouSize, title_lang language, int line) {
     u16* IMETstr = inIMET->names[language][line];
     size_t cpySize = ouSize;
     if (cpySize > 21)
