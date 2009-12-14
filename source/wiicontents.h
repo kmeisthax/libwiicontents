@@ -52,13 +52,16 @@ distribution.
 
 
 //Useful constants.
+//These are possible languages.
 typedef enum {
     lang_en, lang_jp, lang_de, lang_fr, lang_es, lang_it, lang_nl
-} title_lang;
+} WCT_title_lang;
 
+//These are possible devices.
 typedef enum {
     device_any, device_nand, device_sd
-} device_type;
+} WCT_device_type;
+
 //This determines what 'mode' we are running in.
 //Trying to initialize in ios_su, superuser mode, will use the ES_Identify bug if possible.
 //ios_game assumes the restrictions of a game.
@@ -71,17 +74,17 @@ s32 WCT_Init(); //Initialize contents access, and attempt to exploit ES_Identify
 s32 WCT_Deinit(); //Deinitialize WCT, which deinits ISFS.
 
 //Title mounting functions. device_type will tell the system if you want to mount title data/contents from SD or NAND.
-s32 WCT_MountTitleContents(u64 tid, device_type device);
-s32 WCT_MountTitleData(u64 tid, device_type device);
+s32 WCT_MountTitleContents(u64 tid, WCT_device_type device);
+s32 WCT_MountTitleData(u64 tid, WCT_device_type device);
 
 //Title name retrieving functions.
 //These functions will generate a somewhat useful name for any title.
 //If the title has a banner, we use that.
 //Names are split into two lines, only TitleName is shown on the menu.
 //TitleTagline is shown as the 2nd line on the Wii Message Board.
-s32 WCT_TitleNameUTF16(u16* outstring, u32 length, u64 tid, title_lang language);
-s32 WCT_TitleNameASCII(char* outstring, u32 length, u64 tid, title_lang language);
-s32 WCT_TitleTaglineUTF16(u16* outstring, u32 length, u64 tid, title_lang language);
-s32 WCT_TitleTaglineASCII(char* outstring, u32 length, u64 tid, title_lang language);
+s32 WCT_TitleNameUTF16(u16* outstring, u32 length, u64 tid, WCT_title_lang language);
+s32 WCT_TitleNameASCII(char* outstring, u32 length, u64 tid, WCT_title_lang language);
+s32 WCT_TitleTaglineUTF16(u16* outstring, u32 length, u64 tid, WCT_title_lang language);
+s32 WCT_TitleTaglineASCII(char* outstring, u32 length, u64 tid, WCT_title_lang language);
 
 #endif
