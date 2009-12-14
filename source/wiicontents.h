@@ -59,6 +59,12 @@ typedef enum {
 typedef enum {
     device_any, device_nand, device_sd
 } device_type;
+//This determines what 'mode' we are running in.
+//Trying to initialize in ios_su, superuser mode, will use the ES_Identify bug if possible.
+//ios_game assumes the restrictions of a game.
+typedef enum {
+    execution_ios_su, execution_ios_game
+} WCT_execution_context;
 
 //Init functions.
 s32 WCT_Init(); //Initialize contents access, and attempt to exploit ES_Identify.
