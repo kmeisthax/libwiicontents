@@ -87,4 +87,7 @@ s32 cbin_iconbinread(ContentBin* context, u8* buffer, size_t bufSize);
 
 s32 cbin_getname(ContentBin* context, u16* outUnicode, size_t ouSize, title_lang language, int line);
 
+//Mount a device in devoptab to read all contents as files.
+s32 cbin_mount(ContentBin* context, const char* devicename);
+
 #endif
