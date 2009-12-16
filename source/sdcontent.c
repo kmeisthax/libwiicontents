@@ -184,14 +184,13 @@ s32 __cbin_decode(ContentBin* context) {
     ContentBinHeader head;
     long int written = 0;
     
-    __cbin_decrypted_read(context, context->offsets.header, context->lengths.header, (u8*)&head, sizeof(ContentBinHeader), &written);
-    
-    if (written < context->lengths.header) {
+    __cbin_decrypted_read(context, ptr, len, (u8*)&head, sizeof(ContentBinHeader), &written);
+    if (written < sizeof(ContentBinHeader)) {
         out = WCT_EFILETOOSMALL;
         goto finish_up;
     }
     
-    ptr += context->lengths.header;
+    ptr += len;
     len = head.icon_size;
     
     context->offsets.icon = ptr;
@@ -205,9 +204,27 @@ s32 __cbin_decode(ContentBin* context) {
     
     ContentBinBKHeader bkhead;
     
-    __cbin_read(context, context->offsets.bk, context->lengths.bk, (u8*)&bkhead, sizeof(ContentBinBKHeader), &written);
+    __cbin_read(context, ptr, len, (u8*)&bkhead, sizeof(ContentBinBKHeader), &written);
+    if (written < sizeof(ContentBinBKHeader)) {
+        out = WCT_EFILETOOSMALL;
+        goto finish_up;
+    }
     
-    int offsetsend = context.off
+    ptr += len + len mod 64;
+    len = bkhead->tmd_size;
+    
+    context->offsets.tmd = ptr;
+    context->lengths.tmd = len;
+
+    TMD* tmdblk = malloc(len);
+    
+    __cbin_read(context, ptr, len, (u8*)tmdblk, len, &written);
+    if (written < len) {
+        out = WCT_EFILETOOSMALL;
+        goto finish_up;
+    }
+    
+    
     
     finish_up:
     return out;
