@@ -80,8 +80,8 @@ typedef enum {
 } WCT_execution_context;
 
 //Init functions.
-s32 WCT_Init(); //Initialize contents access, and attempt to exploit ES_Identify.
-s32 WCT_Deinit(); //Deinitialize WCT, which deinits ISFS.
+s32 WCT_Init(WCT_execution_context mode); //Initialize contents access. Depending on execution context, will try to exploit ES_Identify.
+s32 WCT_Deinit(); //Deinitialize WCT, which also deinitializes whatever execution context was selected. After calling, all contexts are invalid.
 
 //Title mounting functions. device_type will tell the system if you want to mount title data/contents from SD or NAND.
 s32 WCT_MountTitleContents(u64 tid, WCT_device_type device);
