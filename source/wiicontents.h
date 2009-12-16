@@ -34,6 +34,8 @@ distribution.
 //Operation successful.
 #define WCT_OKAY             0
 //A memory buffer you gave was not properly aligned.
+//Generally, this won't happen since libwct copies memory on the fly into aligned buffers.
+//If you get this error code, there is a bug in libwct.
 #define WCT_ENOTALIGNED     -1
 //A memory buffer you gave wasn't big enough.
 #define WCT_EOVERFLOW       -2
@@ -47,6 +49,14 @@ distribution.
 #define WCT_EISFSFAIL       -6
 //ES_Identify privledge escalation failed. (May or may not mean patched IOS!)
 #define WCT_ENOIDENTIFY     -7
+//You failed to initialize a common IOS subsystem that should be initialized (like ES)
+#define WCT_EIOSNOTINIT     -8
+//IOS hates you. Specifically, it threw up an EINVAL code of some kind.
+#define WCT_EINTERNAL       -9
+//An IOS subsystem threw up an unknown error code (May indicate broken IOS!)
+#define WCT_EUNKNOWN        -10
+//The file you gave is too small and doesn't have the needed data.
+#define WCT_EFILETOOSMALL   -11
 //You're an idiot.
 #define WCT_ECIRNO         0x2468
 
