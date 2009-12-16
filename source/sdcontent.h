@@ -32,6 +32,7 @@ ES_Identify, were borrowed from AnyTitle Deleter.
 #define __WCT_SDCONTENT_H__
 
 #include <gccore.h>
+#include <stdio.h>
 #include <ogc/es.h>
 
 #include "titlegen.h"
@@ -45,8 +46,11 @@ typedef struct {
     WCT_execution_context mode;
     ContentBinType type;
     union {
-        int fd;
-        char* buffer;
+        FILE fd;
+        struct {
+            char* b;
+            size_t l;
+        } cb;
     } datasource;
     struct {
         int header;
@@ -56,6 +60,14 @@ typedef struct {
         int contents;
         int certs;
     } offsets;
+    struct {
+        int header;
+        int icon;
+        int bk;
+        int tmd;
+        int contents;
+        int certs;
+    } lengths; //these are the ENDS of this particular segment, NOT the START of the next one. Sections are padded to 64-byte boundaries
 } ContentBin;
 
 //Basic initialization, sanity testing
