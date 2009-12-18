@@ -97,3 +97,28 @@ s32 str2u16(u16* outUtf16, size_t length, const char* inAscii, size_t* copied) {
     
     return WCT_OKAY;
 }
+
+//Convert ES error messages to WCT error messages
+s32 convertEStoWCTError (s32* errorcode) {
+    s32 = out;
+    
+    switch (err) {
+        case ES_ENOMEM:
+            out = WCT_ENOMEM;
+            break;
+        case ES_EINVAL:
+            out = WCT_EINTERNAL;
+            break;
+        case ES_EALIGN:
+            out = WCT_ENOTALIGNED;
+            break;
+        case ES_ENOTINIT:
+            out = WCT_EIOSNOTINIT;
+            break;
+        default:
+            out = WCT_EUNKNOWN;
+            break;
+    }
+    
+    return out;
+}
