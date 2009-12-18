@@ -49,5 +49,6 @@ distribution.
 void* memalign(unsigned int, unsigned int);
 void hex2u32(const char* inhex, u32* out32);
 s32 str2u16(u16* outUtf16, size_t length, const char* inAscii, size_t* copied);
+s32 convertEStoWCTError (s32* errorcode);
 
 #endif
