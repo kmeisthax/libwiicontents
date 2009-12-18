@@ -62,7 +62,6 @@ typedef struct {
     iosc_caps capabilities;
 } iosc_manifest
 
-s32 iosc_countInstalledIOS(u8* numIOS);
 s32 iosc_listInstalledIOS(u8* IOSnumArray, size_t maxEntries);
 s32 iosc_testIOS(u8 slot, iosc_manifest* info);
 
