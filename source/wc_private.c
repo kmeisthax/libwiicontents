@@ -100,23 +100,23 @@ s32 str2u16(u16* outUtf16, size_t length, const char* inAscii, size_t* copied) {
 
 //Convert ES error messages to WCT error messages
 s32 convertEStoWCTError (s32* errorcode) {
-    s32 = out;
+    s32 = out = 0;
     
     switch (err) {
         case ES_ENOMEM:
-            out = WCT_ENOMEM;
+            *errorcode = WCT_ENOMEM;
             break;
         case ES_EINVAL:
-            out = WCT_EINTERNAL;
+            *errorcode = WCT_EINTERNAL;
             break;
         case ES_EALIGN:
-            out = WCT_ENOTALIGNED;
+            *errorcode = WCT_ENOTALIGNED;
             break;
         case ES_ENOTINIT:
-            out = WCT_EIOSNOTINIT;
+            *errorcode = WCT_EIOSNOTINIT;
             break;
         default:
-            out = WCT_EUNKNOWN;
+            *errorcode = WCT_EUNKNOWN;
             break;
     }
     
