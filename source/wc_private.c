@@ -100,7 +100,7 @@ s32 str2u16(u16* outUtf16, size_t length, const char* inAscii, size_t* copied) {
 
 //Convert ES error messages to WCT error messages
 s32 convertEStoWCTError (s32* errorcode) {
-    s32 = out = 0;
+    s32 out = 0;
     
     switch (err) {
         case ES_ENOMEM:
