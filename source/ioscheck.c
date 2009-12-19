@@ -101,22 +101,32 @@ s32 iosc_testIOS(u8 slot, iosc_manifest* info) {
     u32 bytes_needed ALIGN_32 = 0;
     s32 err = ES_GetTMDViewSize(tid, &bytes_needed);
     if (err < 0) {
-        switch (err) {
-            case ES_ENOMEM:
-                out = WCT_ENOMEM;
-                break;
-            case ES_EINVAL:
-                out = WCT_EINTERNAL;
-                break;
-            case ES_EALIGN:
-                out = WCT_ENOTALIGNED;
-                break;
-            case ES_ENOTINIT:
-                out = WCT_EIOSNOTINIT;
-                break;
-        }
+        convertEStoWCTError(&err);
+        out = err;
+        
         goto finish_up;
     }
+    
+    //Allocate a TMDview
+    tmdview* iosdata = memalign(32, bytes_needed);
+    if (iosdata == NULL) {
+        out = WCT_ENOMEM;
+        goto finish_up;
+    }
+    
+    //Fill it with data
+    err = ES_GetTMDView(tid, (u8*)iosdata, bytes_needed);
+    if (err < 0) {
+        convertEStoWCTError(&err);
+        out = err;
+        
+        goto finish_up;
+    }
+    
+    //Peform IOS testing.
+    
+    dealloc_tmdview:
+    free(iosdata);
     
     finish_up:
     return out;

@@ -59,6 +59,10 @@ typedef u32 iosc_caps;
 typedef struct {
     u64 tid;
     u8 ios_num;
+    struct {
+        u8 major;
+        u8 minor;
+    } ver;
     iosc_caps capabilities;
 } iosc_manifest
 
