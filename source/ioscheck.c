@@ -31,28 +31,6 @@ distribution.
 #include "wc_private.h"
 #include "wiicontents.h"
 
-typedef struct
-{
-	u32 id;
-	u16 index;
-	u16 type;
-	u64 size;
-} __attribute__((packed)) tmdview_content;
- 
-typedef struct
-{
-    u8 version; // 0x0000;
-	u8 filler[3];
-	u64 ios_title_id; //0x0004
-	u64 title_id; // 0x00c
-	u32 title_type; //0x0014
-	u16 group_id; //0x0018
-	u8 reserved[0x3e]; //0x001a this is the same reserved 0x3e bytes from the tmd
-	u16 title_version; //0x0058
-	u16 number_contents; //0x005a
-	tmdview_content contents[]; //0x005c
-} __attribute__((packed)) tmdview;
-
 s32 iosc_listInstalledIOS(u8* numIOS, u8* IOSnumArray, size_t maxEntries) {
     s32 out = 0;
     
@@ -99,7 +77,7 @@ s32 iosc_testIOS(u8 slot, iosc_manifest* info) {
     
     //Get TMDView struct size
     u32 bytes_needed ALIGN_32 = 0;
-    s32 err = ES_GetTMDViewSize(tid, &bytes_needed);
+    s32 err = ES_GetStoredTMDSize(tid, &bytes_needed);
     if (err < 0) {
         convertEStoWCTError(&err);
         out = err;
@@ -107,15 +85,15 @@ s32 iosc_testIOS(u8 slot, iosc_manifest* info) {
         goto finish_up;
     }
     
-    //Allocate a TMDview
-    tmdview* iosdata = memalign(32, bytes_needed);
+    //Allocate a signed blob
+    signed_blob* stmnd = memalign(32, bytes_needed);
     if (iosdata == NULL) {
         out = WCT_ENOMEM;
         goto finish_up;
     }
     
     //Fill it with data
-    err = ES_GetTMDView(tid, (u8*)iosdata, bytes_needed);
+    err = ES_GetStoredTMD(tid, stmnd, bytes_needed);
     if (err < 0) {
         convertEStoWCTError(&err);
         out = err;
@@ -123,10 +101,13 @@ s32 iosc_testIOS(u8 slot, iosc_manifest* info) {
         goto finish_up;
     }
     
-    //Peform IOS testing.
+    //Get the actual IOS structure.
+    tmd* ios_meta = (tmd*)SIGNATURE_PAYLOAD(stmnd);
+    
+    //Do some testing on the TMD.
     
     dealloc_tmdview:
-    free(iosdata);
+    free(stmnd);
     
     finish_up:
     return out;
